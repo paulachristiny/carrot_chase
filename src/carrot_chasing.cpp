@@ -12,6 +12,16 @@ geometry_msgs::Twist robotspeed;
 geometry_msgs::Pose2D wi;
 geometry_msgs::Pose2D wi1;
 
+double normalizeAngle(double angle){
+    if(angle > M_PI){
+        return(angle - 2*M_PI);
+    }else if(angle < -M_PI){
+        return (angle + 2*M_PI);
+    }else{
+        return angle;
+    }
+}
+
 double inicialize_dots()
 {
     wi.x = 4;
@@ -21,7 +31,7 @@ double inicialize_dots()
     wi1.y = 1.5;
 }
 
-double delta = 0.1;
+double delta = 2;
 
 
 //Função de calculo de distancia
@@ -55,26 +65,21 @@ void odomCallBack(const nav_msgs::OdometryConstPtr &msg)
     //ROS_INFO("%f %f", yc, xc); nan
     double w;
     //determinar angulo entre as distancias e controlar velocidade por yaw
-    double d = calculateDistance (p.x,p.y,xc,yc);
+    //double d = calculateDistance (p.x,p.y,xc,yc);
     double angle = atan2(yc - p.y,xc - p.x);
     double deltaAngle = angle - p.theta;
+    deltaAngle = normalizeAngle(deltaAngle);
     //ROS_INFO("%f %f ", angle);
     //Normalizar angulo
-    if ((deltaAngle)> M_PI)
-    {
-        deltaAngle -=2*M_PI;
-    }
-    else if ((deltaAngle)< -M_PI)
-    {
-        deltaAngle +=2*M_PI;
-    }
     
-    w = 0.5*deltaAngle;
-    if (std::abs(w) > 0.5)
+    
+    w = 0.75*deltaAngle;
+    if (std::abs(w) > 0.75)
     {
-        w = 0.5*deltaAngle/std::abs(deltaAngle);
+        w = 0.75*deltaAngle/std::abs(deltaAngle);
     }
     robotspeed.angular.z = w;
+    ROS_INFO("%f ", p.theta);
     //if (d > 0.1){
     robotspeed.linear.x = 0.5;
     //}
@@ -96,6 +101,8 @@ int main (int argc, char **argv)
     ros::NodeHandle nh;
     ros::Subscriber odom_sub = nh.subscribe("/vrep/vehicle/odometry", 1, odomCallBack);
     twist_pub = nh.advertise<geometry_msgs::Twist>("/robotSpeeds", 1);
+    
+    inicialize_dots();
     ros::spin();
     
     
